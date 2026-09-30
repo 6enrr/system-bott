@@ -12,7 +12,7 @@ try {
     }
 }
 
-// ⚠️ ضع هنا ID حسابك في ديسكورد لتستطيع استخدام البوت في أي سيرفر بدون تفعيل
+// ⚠️ آيدي حساب المطور
 const DEVELOPER_IDS = ["1050339172168253470"];
 
 module.exports = async (client, message) => {
@@ -61,7 +61,8 @@ module.exports = async (client, message) => {
         if (typeof command.run === "function") {
             await command.run(client, message, args);
         } else if (typeof command.execute === "function") {
-            await command.execute(client, message, args);
+            // التعديل هنا: ترتيب البرامترات ليناسب ملف sub.js (message, args, client)
+            await command.execute(message, args, client);
         } else if (typeof command === "function") {
             await command(client, message, args);
         }
