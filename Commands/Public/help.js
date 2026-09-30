@@ -16,7 +16,10 @@ module.exports = {
     const guildColor =
       db.get(`Guild_Color_${message.guild?.id}`) || "#2b2d31";
 
-    const totalCommands = client.commands?.size || 0;
+    // تصفية الأوامر واستثناء أمر sub أو الأوامر المخفية ليعود العدد 210
+    const totalCommands = client.commands
+      ? client.commands.filter((cmd) => !cmd.hidden && cmd.name !== "sub").size
+      : 0;
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString("ar-EG", {
@@ -29,9 +32,7 @@ module.exports = {
       .setColor(guildColor)
       .setTitle("اوامر البوت :")
       .setDescription(
-        `يمكنك الآن عرض كافة الأوامر الخاصة بك
-**عدد الأوامر:** \`${totalCommands}\`
-`
+        `يمكنك الآن عرض كافة الأوامر الخاصة بك\n**عدد الأوامر:** \`${totalCommands}\`\n`
       )
       .setThumbnail("https://cdn.discordapp.com/embed/avatars/0.png")
       .setFooter({ text: timeStr });
@@ -262,12 +263,12 @@ module.exports = {
           .setFooter({ text: timeStr });
       }
 
-else if (val === "help5") {
-  replyembed = new EmbedBuilder()
-    .setColor(Color)
-    .setTitle("أوامر الحماية")
-    .setDescription(
-      `
+      else if (val === "help5") {
+        replyembed = new EmbedBuilder()
+          .setColor(Color)
+          .setTitle("أوامر الحماية")
+          .setDescription(
+            `
 ** advice** : **نصايح ممكن تفيدك بحماية السيرفر**
 ** sechard** : **تشغيل / إيقاف الحماية القصوى**
 ** setlimit** : **تحدد الحد للحمايه**
@@ -327,10 +328,11 @@ else if (val === "help5") {
 
 يعني لو شخص حذف أو أنشأ أكثر من **3 مرات خلال 10 ثواني**
 البوت راح **يطرده تلقائي**
-      `
-    )
-    .setFooter({ text: timeStr });
-}
+            `
+          )
+          .setFooter({ text: timeStr });
+      }
+
       else if (val === "help6") {
         replyembed = new EmbedBuilder()
           .setColor(Color)

@@ -3,9 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
 const db = require("pro.db");
-const { checkSubscription } = require("./subscription"); // استدعاء نظام فحص الاشتراكات
 
-// محاولة قراءة ملف الإعدادات محلياً، وإذا لم يوجد على سيرفر الاستضافة يتجاوز الخطأ بأمان
 let config = {};
 try {
   config = require("./config.json");
@@ -38,8 +36,6 @@ if (fs.existsSync(commandsPath)) {
 
   for (const cat of cats) {
     const catPath = path.join(commandsPath, cat);
-    
-    // تخطي أي ملف موجود مباشرة داخل Commands لتجنب كراش البوت
     if (!fs.lstatSync(catPath).isDirectory()) continue;
 
     const files = fs.readdirSync(catPath).filter((f) => f.endsWith(".js"));
@@ -48,11 +44,7 @@ if (fs.existsSync(commandsPath)) {
       const cmdPath = path.join(catPath, file);
       try {
         const cmd = require(cmdPath);
-
-        if (!cmd || !cmd.name) {
-          console.warn(`⚠️ ملف بدون اسم: ${cat}/${file}`);
-          continue;
-        }
+        if (!cmd || !cmd.name) continue;
 
         client.commands.set(cmd.name.toLowerCase(), cmd);
 
@@ -61,8 +53,6 @@ if (fs.existsSync(commandsPath)) {
             client.aliases.set(al.toLowerCase(), cmd.name.toLowerCase());
           });
         }
-
-        console.log(`✅ Loaded command: ${cat}/${cmd.name}`);
       } catch (err) {
         console.error(`❌ Failed to load ${file} in ${cat}:`, err);
       }
@@ -72,7 +62,6 @@ if (fs.existsSync(commandsPath)) {
 
 // تحميل الأحداث (Events)
 const eventsRoot = path.join(__dirname, "events");
-
 if (fs.existsSync(eventsRoot)) {
   fs.readdirSync(eventsRoot).forEach((folder) => {
     const fullFolder = path.join(eventsRoot, folder);
@@ -86,14 +75,11 @@ if (fs.existsSync(eventsRoot)) {
 
       try {
         const eventFn = require(evPath);
-
         if (eventName === "ready") {
           client.once("ready", (...args) => eventFn(client, ...args));
         } else {
           client.on(eventName, (...args) => eventFn(client, ...args));
         }
-
-        console.log(`⚡ Loaded event: ${folder}/${file}`);
       } catch (err) {
         console.error(`❌ Event load error in ${file}:`, err);
       }
@@ -101,31 +87,9 @@ if (fs.existsSync(eventsRoot)) {
   });
 }
 
-// نظام حماية الأوامر وفحص الاشتراك (Middleware)
-client.on("messageCreate", async (message) => {
-  if (message.author.bot || !message.guild) return;
-
-  // جلب البادئة (Prefix) الخاصة بالبوت أو الافتراضية
-  const prefix = config.prefix || "!";
-
-  // التحقق مما إذا كانت الرسالة تبدأ بأمر التفعيل لكي لا يتم حظره
-  if (message.content.startsWith(`${prefix}sub`)) {
-    return; // السماح بمرور أمر التفعيل فوراً
-  }
-
-  // فحص ما إذا كان السيرفر مشتركاً وصالحاً
-  const subStatus = checkSubscription(message.guild.id);
-  if (!subStatus.active) {
-    return message.reply({
-      content: `❌ **عذراً، هذا السيرفر غير مشترك أو انتهت صلاحية اشتراكه!**\n\n🆔 **ID السيرفر:** \`${message.guild.id}\`\n📩 يرجى التواصل مع الإدارة لتجديد الاشتراك وتفعيل البوت.`
-    });
-  }
-});
-
 client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-// يقرأ التوكن من الملف المحلي أو من إعدادات البيئة تلقائياً
 const tokenToLogin = config.token || process.env.DISCORD_TOKEN;
 client.login(tokenToLogin);
