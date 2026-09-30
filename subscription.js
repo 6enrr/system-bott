@@ -1,22 +1,26 @@
 const db = require('pro.db');
 
-// دالة تحويل صيغ الوقت (ساعات h / أيام d / أشهر m) إلى مليمترات ثانية
+// تحويل الوقت (دقائق min / ساعات h / أيام d / أشهر m)
 function parseDuration(durationStr) {
+    if (!durationStr) return null;
     if (typeof durationStr === 'number') return durationStr * 30 * 24 * 60 * 60 * 1000;
-    const match = String(durationStr).trim().match(/^(\d+)([hdm]?)$/i);
+    
+    const match = String(durationStr).trim().match(/^(\d+)(min|h|d|m)?$/i);
     if (!match) return null;
+    
     const amount = parseInt(match[1]);
     const unit = (match[2] || 'm').toLowerCase();
 
     switch (unit) {
-        case 'h': return amount * 60 * 60 * 1000;         // ساعات
-        case 'd': return amount * 24 * 60 * 60 * 1000;    // أيام
-        case 'm': return amount * 30 * 24 * 60 * 60 * 1000; // أشهر
+        case 'min': return amount * 60 * 1000;              // دقائق
+        case 'h': return amount * 60 * 60 * 1000;           // ساعات
+        case 'd': return amount * 24 * 60 * 60 * 1000;      // أيام
+        case 'm': return amount * 30 * 24 * 60 * 60 * 1000; // أشهر (30 يوم)
         default: return null;
     }
 }
 
-// دالة فحص حالة الاشتراك
+// فحص اشتراك السيرفر
 function checkSubscription(guildId) {
     const subData = db.get(`subscription_${guildId}`);
     if (!subData) return { active: false, reason: 'NOT_FOUND' };
@@ -34,7 +38,7 @@ function checkSubscription(guildId) {
     };
 }
 
-// دالة تفعيل أو تجديد الاشتراك (تضيف الوقت على الوقت الحالي أو القديم)
+// تفعيل أو تجديد الاشتراك
 function activateSubscription(guildId, durationStr) {
     const durationMs = parseDuration(durationStr);
     if (!durationMs) return null;
@@ -42,7 +46,6 @@ function activateSubscription(guildId, durationStr) {
     const now = Date.now();
     const existing = db.get(`subscription_${guildId}`);
     
-    // إذا كان السيرفر مشتركاً مسبقاً واشتراكه ساري، يتم تمديد الانتهاء فوق التاريخ القديم (تجديد حقيقي)
     let newExpiry = now + durationMs;
     if (existing && existing.expiryDate > now) {
         newExpiry = existing.expiryDate + durationMs;
@@ -59,9 +62,18 @@ function activateSubscription(guildId, durationStr) {
     return payload;
 }
 
-// دالة تنسيق الوقت المتبقي
+// إلغاء/حذف الاشتراك
+function removeSubscription(guildId) {
+    const existing = db.get(`subscription_${guildId}`);
+    if (!existing) return false;
+    db.delete(`subscription_${guildId}`);
+    return true;
+}
+
+// تنسيق الوقت المتبقي بالعربي
 function formatRemainingTime(ms) {
     if (ms <= 0) return "منتهي";
+    const seconds = Math.floor((ms / 1000) % 60);
     const minutes = Math.floor((ms / (1000 * 60)) % 60);
     const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
@@ -70,7 +82,15 @@ function formatRemainingTime(ms) {
     if (days > 0) result.push(`${days} يوم`);
     if (hours > 0) result.push(`${hours} ساعة`);
     if (minutes > 0) result.push(`${minutes} دقيقة`);
+    if (days === 0 && hours === 0 && minutes === 0 && seconds > 0) {
+        result.push(`${seconds} ثانية`);
+    }
     return result.length > 0 ? result.join(" و ") : "أقل من دقيقة";
 }
 
-module.exports = { checkSubscription, activateSubscription, formatRemainingTime };
+module.exports = { 
+    checkSubscription, 
+    activateSubscription, 
+    removeSubscription, 
+    formatRemainingTime 
+};
