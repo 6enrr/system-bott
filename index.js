@@ -1,8 +1,9 @@
 require('./server.js');
 const fs = require("fs");
-const path = require("path");
+const path = path = require("path");
 const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
 const db = require("pro.db");
+const { checkSubscription } = require("./subscription"); // استدعاء نظام فحص الاشتراكات
 
 // محاولة قراءة ملف الإعدادات محلياً، وإذا لم يوجد على سيرفر الاستضافة يتجاوز الخطأ بأمان
 let config = {};
@@ -90,10 +91,31 @@ fs.readdirSync(eventsRoot).forEach((folder) => {
   }
 });
 
+// نظام حماية الأوامر وفحص الاشتراك (Middleware)
+client.on("messageCreate", async (message) => {
+  if (message.author.bot || !message.guild) return;
+
+  // جلب البادئة (Prefix) الخاصة بالبوت أو الافتراضية
+  const prefix = config.prefix || "!"; // استبدلها بالبادئة المستخدمة عندك إذا كانت مختلفة
+
+  // التحقق مما إذا كان الرسالة تبدأ بأمر التفعيل لكي لا يتم حظره
+  if (message.content.startsWith(`${prefix}sub`)) {
+    return; // السماح بمرور أمر التفعيل فوراً
+  }
+
+  // فحص ما إذا كان السيرفر مشترك وصالح
+  const isSubscribed = checkSubscription(message.guild.id);
+  if (!isSubscribed) {
+    return message.reply({
+      content: "❌ **عذراً، هذا السيرفر غير مشترك أو انتهت صلاحية اشتراكه!** يرجى التواصل مع الإدارة لتجديد الاشتراك وتفعيل البوت."
+    });
+  }
+});
+
 client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
 // يقرأ التوكن من الملف المحلي أو من إعدادات Render تلقائياً
 const tokenToLogin = config.token || process.env.DISCORD_TOKEN;
-client.login(process.env.DISCORD_TOKEN);
+client.login(tokenToLogin);
