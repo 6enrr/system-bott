@@ -13,6 +13,7 @@
     "discord-inviter": "^0.9.3",
     "discord.js": "^14.24.2",
     "editor-canvas": "^0.2.3",
+    "express": "^5.2.1",
     "fs": "^0.0.1-security",
     "glob": "^11.0.3",
     "humanize-duration": "^3.33.1",
