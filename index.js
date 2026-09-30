@@ -95,4 +95,4 @@ client.once("ready", () => {
 
 // يقرأ التوكن من الملف المحلي أو من إعدادات Render تلقائياً
 const tokenToLogin = config.token || process.env.DISCORD_TOKEN;
-client.login(tokenToLogin);
+client.login(process.env.DISCORD_TOKEN);
