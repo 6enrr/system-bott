@@ -1,6 +1,6 @@
 require('./server.js');
 const fs = require("fs");
-const path = path = require("path");
+const path = require("path");
 const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
 const db = require("pro.db");
 const { checkSubscription } = require("./subscription"); // استدعاء نظام فحص الاشتراكات
