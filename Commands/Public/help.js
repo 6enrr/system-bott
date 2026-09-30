@@ -34,7 +34,7 @@ module.exports = {
       .setDescription(
         `يمكنك الآن عرض كافة الأوامر الخاصة بك\n**عدد الأوامر:** \`${totalCommands}\`\n`
       )
-      .setThumbnail("https://cdn.discordapp.com/embed/avatars/0.png")
+      .setThumbnail("https://cdn.discordapp.com/attachments/1198967761183973466/1554964987804516423/Gemini_Generated_Image_hubjddhubjddhubj.jpg?backend=b2&ex=6abecd7e&is=6abd7bfe&hm=fa992409cb3a93f6b687c5a2386f4f9aed89acaa1a1ae7cf2a015f6d312978b5&")
       .setFooter({ text: timeStr });
 
     const menu = new StringSelectMenuBuilder()
