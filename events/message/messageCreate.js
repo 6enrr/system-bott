@@ -1,6 +1,6 @@
 const db = require("pro.db");
 
-// استدعاء نظام الاشتراكات بشكل آمن يراعي موقع الملف داخل مجلد events
+// استدعاء نظام الاشتراكات
 let checkSubscription;
 try {
     checkSubscription = require("../../subscription").checkSubscription;
@@ -12,10 +12,13 @@ try {
     }
 }
 
+// ⚠️ ضع هنا ID حسابك في ديسكورد لتستطيع استخدام البوت في أي سيرفر بدون تفعيل
+const DEVELOPER_IDS = ["1050339172168253470"];
+
 module.exports = async (client, message) => {
     if (!message || !message.guild || message.author.bot) return;
 
-    // التفاعل التلقائي بالإيموجيات (إن وجد)
+    // التفاعل التلقائي بالإيموجيات
     const reactData = db.get(`RoomInfo_${message.guild.id}_${message.channel.id}`);
     if (reactData && Array.isArray(reactData.emojis)) {
         for (const emoji of reactData.emojis) {
@@ -28,7 +31,6 @@ module.exports = async (client, message) => {
     const args = message.content.trim().split(/\s+/);
     let cmdName = args.shift().toLowerCase();
 
-    // إزالة علامة ! من بداية اسم الأمر إن وجدت لضمان التعرف عليه
     if (cmdName.startsWith("!")) {
         cmdName = cmdName.slice(1);
     }
@@ -37,14 +39,13 @@ module.exports = async (client, message) => {
         client.commands.get(cmdName) ||
         client.commands.get(client.aliases.get(cmdName));
 
-    // إذا لم تكن الرسالة أمراً مسجلاً في البوت، يتجاهلها فوراً ولا ينفذ شيئاً
     if (!command) return;
 
-    // 1. استثناء أمر sub الخاص بالمطور ليعمل دائماً لتفعيل الاشتراكات
-    if (cmdName === "sub" || command.name === "sub") {
-        // يتجاوز فحص الاشتراك وينفذ الأمر مباشرة
-    } else {
-        // 2. فحص اشتراك السيرفر لبقية الأوامر العامة (مثل help وغيرها)
+    const isDeveloper = DEVELOPER_IDS.includes(message.author.id);
+    const isSubCommand = cmdName === "sub" || command.name === "sub";
+
+    // إذا لم يكن المستخدم هو المطور ولم يكن الأمر هو sub، نفحص اشتراك السيرفر
+    if (!isDeveloper && !isSubCommand) {
         if (typeof checkSubscription === "function") {
             const subStatus = checkSubscription(message.guild.id);
             if (!subStatus.active) {
