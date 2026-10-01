@@ -27,9 +27,10 @@ module.exports = {
 
             const remaining = formatRemainingTime(subStatus.remainingMs);
             const expiryString = new Date(subStatus.expiryDate).toLocaleString('ar-EG');
+            const botMention = subStatus.subData.botClientId ? `<@${subStatus.subData.botClientId}>` : 'غير معروف';
 
             return message.reply({
-                content: `✅ **حالة اشتراك السيرفر:** \`${targetGuildId}\`\n⏳ **المتبقي:** ${remaining}\n📅 **تاريخ الانتهاء:** \`${expiryString}\``
+                content: `✅ **حالة اشتراك السيرفر:** \`${targetGuildId}\`\n⏳ **المتبقي:** ${remaining}\n📅 **تاريخ الانتهاء:** \`${expiryString}\`\n🤖 **البوت المخصص:** ${botMention}`
             });
         }
 
@@ -37,7 +38,7 @@ module.exports = {
         if (action === 'remove' || action === 'delete' || action === 'cancel') {
             const targetGuildId = args[1];
             if (!targetGuildId) {
-                return message.reply('⚠️ يرجى تحديد ID السيرفر لإلغاء اشتراكه.\nمثال: `!sub remove 123456789`');
+                return message.reply('⚠️️ يرجى تحديد ID السيرفر لإلغاء اشتراكه.\nمثال: `!sub remove 123456789`');
             }
 
             const isDeleted = removeSubscription(targetGuildId);
@@ -45,7 +46,7 @@ module.exports = {
                 return message.reply(`❌ السيرفر \`${targetGuildId}\` ليس لديه اشتراك فعال بالأصل.`);
             }
 
-            return message.reply(`🗑️ **تم إلغاء اشتراك السيرفر \`${targetGuildId}\` فوراً وبنجاح!**`);
+            return message.reply(`🗑️ **تم إلغاء اشتراك السيرفر \`${targetGuildId}\` فوراً وتحرير البوت الخاص به ليعود متاحاً بنجاح!**`);
         }
 
         // 3. تفعيل / تجديد الاشتراك: !sub <Guild_ID> <المدة> [User_ID_العميل]
@@ -64,16 +65,23 @@ module.exports = {
         }
 
         const result = activateSubscription(guildId, durationInput);
-        if (!result) {
-            return message.reply('❌ صيغة الوقت غير صحيحة!\nاستخدم: `2min` (دقائق), `12h` (ساعات), `7d` (أيام), `1m` (أشهر).');
+        
+        // التحقق من الأخطاء (صيغة الوقت أو نفاد التوكنات)
+        if (!result.success) {
+            if (result.reason === 'INVALID_DURATION') {
+                return message.reply('❌ صيغة الوقت غير صحيحة!\nاستخدم: `2min` (دقائق), `12h` (ساعات), `7d` (أيام), `1m` (أشهر).');
+            } else if (result.reason === 'NO_TOKENS_AVAILABLE') {
+                return message.reply('❌ **لا يوجد أي بوت (توكن) متاح حالياً!** يرجى إضافة توكنات جديدة إلى ملف `tokens.json` أو إلغاء اشتراك سيرفرات قديمة.');
+            }
+            return message.reply('❌ حدث خطأ غير معروف.');
         }
 
-        // رابط دعوة البوت المخصص الخاص بك
-        const inviteLink = "https://discord.com/oauth2/authorize?client_id=1554895717716328479&permissions=8&integration_type=0&scope=bot";
+        // جلب البيانات من الدالة
+        const inviteLink = result.inviteLink;
+        const expiryString = new Date(result.payload.expiryDate).toLocaleString('ar-EG');
+        const botClientId = result.botData.clientId;
 
-        const expiryString = new Date(result.expiryDate).toLocaleString('ar-EG');
-
-        let replyMsg = `✅ **تم تفعيل / تجديد الاشتراك بنجاح!**\n🆔 **السيرفر:** \`${guildId}\`\n⏱️ **المدة:** \`${durationInput}\`\n📅 **ينتهي في:** \`${expiryString}\`\n🔗 **رابط البوت:**\n${inviteLink}`;
+        let replyMsg = `✅ **تم تفعيل / تجديد الاشتراك بنجاح وتخصيص بوت للسيرفر!**\n🆔 **السيرفر:** \`${guildId}\`\n⏱️ **المدة:** \`${durationInput}\`\n📅 **ينتهي في:** \`${expiryString}\`\n🤖 **البوت المخصص:** <@${botClientId}>\n🔗 **رابط البوت:**\n${inviteLink}`;
 
         // إرسال التفاصيل والرابط للخاص إن تم تحديد ID المستخدم
         if (buyerUserId) {
@@ -81,9 +89,9 @@ module.exports = {
                 const user = await client.users.fetch(buyerUserId);
                 if (user) {
                     await user.send({
-                        content: `🎉 **مرحباً! تم تفعيل اشتراك سيرفرك بنجاح!**\n\n🆔 **ID السيرفر:** \`${guildId}\`\n📅 **تاريخ الانتهاء:** \`${expiryString}\`\n\n🔗 **رابط إضافة البوت إلى سيرفرك:**\n${inviteLink}`
+                        content: `🎉 **مرحباً! تم تفعيل اشتراك سيرفرك بنجاح!**\n\n🆔 **ID السيرفر:** \`${guildId}\`\n📅 **تاريخ الانتهاء:** \`${expiryString}\`\n🤖 **البوت المخصص لك:** <@${botClientId}>\n\n🔗 **رابط إضافة البوت إلى سيرفرك (برتبة أدمن):**\n${inviteLink}`
                     });
-                    replyMsg += `\n📩 **تم إرسال رابط البوت وتفاصيل التفعيل للعميل على الخاص!**`;
+                    replyMsg += `\n📩 **تم إرسال رابط البوت المخصص وتفاصيل التفعيل للعميل على الخاص!**`;
                 }
             } catch (e) {
                 replyMsg += `\n⚠️ **تعذر إرسال الرسالة للخاص (قد تكون الخصوصية مغلقة عند العميل).**`;
