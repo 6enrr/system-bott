@@ -123,7 +123,9 @@ function activateSubscription(guildId, durationStr) {
 
     db.set(`subscription_${guildId}`, payload);
 
-    const inviteLink = `https://discord.com/oauth2/authorize?client_id=${botData.clientId}&permissions=8&scope=bot%20applications.commands`;
+    // توليد رابط الإضافة حصرياً للبوت الفرعي المخصص عبر الـ clientId الخاص به
+    const botClientId = botData.clientId || botData.id;
+    const inviteLink = `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=8&scope=bot%20applications.commands`;
 
     return {
         success: true,
